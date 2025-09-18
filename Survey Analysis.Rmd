@@ -1,0 +1,146 @@
+---
+title: "Class 1 Survey Analysis"
+author: "Sandra"
+date: "2025-09-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(dplyr)
+library(stringr)
+```
+
+
+#Problem 1
+
+Importing the Class 1 survey from GitHub; call the dataframe C1survey.
+```{r}
+C1survey <- read.csv(
+  url("https://raw.githubusercontent.com/kijohnson/Advanced-Data-Analysis/main/Class%201%20Survey%20Fall%202025%202.csv")
+)
+head(C1survey)
+```
+
+#Problem 2
+
+Determine (a) number of observations,  (b) number of variables
+
+```{r}
+n_obs  <- nrow(C1survey)
+n_vars <- ncol(C1survey)
+cat("There are", n_obs, "observations and", n_vars, "variables.\n")
+```
+
+#Problem 3
+
+Rename columns to shorter, descriptive names and display them
+
+```{r}
+names(C1survey)[1:27] <- c(
+  "id","like_cats","like_dogs","have_desert","slogan","fav_day","larkORowl",
+  "fav_food","fav_drink","fav_season","fav_month","hobby","program",
+  "specialization","stat_software","R_exp","coding_comfort","coding_length",
+  "top_three","public_health_interest","fav_num","bday","bmonth","country",
+  "state","city","highest_educ_level"
+)
+names(C1survey)
+```
+
+#Problem 4
+
+Count factor, integer, numeric, and character variables.
+
+```{r}
+type_counts <- c(
+  factor    = sum(vapply(C1survey, is.factor,    logical(1))),
+  integer   = sum(vapply(C1survey, is.integer,   logical(1))),
+  numeric   = sum(vapply(C1survey, is.numeric,   logical(1))),  # includes integers
+  character = sum(vapply(C1survey, is.character, logical(1)))
+)
+type_counts
+```
+
+#Problem 5
+
+Check/clean Bday and Bmonth  and then report medians.
+
+```{r}
+# a) Inspect
+table(C1survey$bday,   useNA = "ifany")
+table(C1survey$bmonth, useNA = "ifany")
+
+# b) Cleaning plan (comment):
+# - bday: keep only numeric day values 1–31; non-numeric or out-of-range -> NA.
+# - bmonth: accept month names or digits; convert to 1–12; out-of-range -> NA.
+
+# Clean bday
+C1survey <- C1survey |>
+  mutate(
+    bday = as.numeric(str_extract(as.character(bday), "\\d+")),
+    bday = ifelse(!is.na(bday) & bday >= 1 & bday <= 31, bday, NA_real_)
+  )
+
+# Clean bmonth
+month_lookup <- setNames(
+  1:12,
+  tolower(c("January","February","March","April","May","June",
+            "July","August","September","October","November","December"))
+)
+
+bmonth_chr <- tolower(trimws(as.character(C1survey$bmonth)))
+bmonth_num <- unname(month_lookup[bmonth_chr])               # map names
+need_digits <- is.na(bmonth_num)
+if (any(need_digits)) {
+  tmp <- suppressWarnings(as.numeric(str_extract(bmonth_chr[need_digits], "\\d+")))
+  bmonth_num[need_digits] <- tmp
+}
+bmonth_num[ bmonth_num < 1 | bmonth_num > 12 ] <- NA
+
+C1survey$bmonth <- as.integer(bmonth_num)
+
+# c) Medians after cleaning
+median_bday   <- median(C1survey$bday,   na.rm = TRUE)
+median_bmonth <- median(C1survey$bmonth, na.rm = TRUE)
+median_bday; median_bmonth
+```
+
+#Problem 6
+
+Create bseason; check with a month×season table; total by season.
+
+```{r}
+# a) Season (Northern meteorological)
+C1survey <- C1survey |>
+  mutate(
+    bseason = case_when(
+      bmonth %in% c(12,1,2)  ~ "Winter",
+      bmonth %in% 3:5        ~ "Spring",
+      bmonth %in% 6:8        ~ "Summer",
+      bmonth %in% 9:11       ~ "Fall",
+      TRUE                   ~ NA_character_
+    )
+  )
+
+# b) rows = bmonth, cols = season
+tab <- table(bmonth = C1survey$bmonth, season = C1survey$bseason, useNA = "ifany")
+tab
+
+# c) How many classmates per season?
+addmargins(tab, margin = 2)   # column sums
+colSums(tab, na.rm = TRUE)    # clean vector of counts
+```
+
+#Problem 7 
+choose a variable -: Which season is the most common favorite season?
+
+```{r}
+#Frequency of favorite season
+fav_tab <- sort(table(C1survey$fav_season), decreasing = TRUE)
+fav_tab
+
+#Interpretation:
+# The most common favorite season among classmates are Fall and Summer .
+```
+
+
