@@ -141,6 +141,44 @@ fav_tab
 
 #Interpretation:
 # The most common favorite season among classmates are Fall and Summer .
+
+# Packages
+suppressPackageStartupMessages({library(dplyr); library(ggplot2); library(scales)})
+
+# Prep data
+fav_df <- C1survey |>
+  mutate(fav_season = factor(fav_season)) |>
+  filter(!is.na(fav_season) & fav_season != "") |>
+  count(fav_season, name = "n") |>
+  mutate(pct = n / sum(n),
+         fav_season = reorder(fav_season, n))
+
+# Custom palette (distinct, color-blind friendly)
+pal <- c(
+  "Winter" = "#3B82F6",  # blue
+  "Spring" = "#22C55E",  # green
+  "Summer" = "#F59E0B",  # amber
+  "Fall"   = "#EF4444"   # red
+)
+
+ggplot(fav_df, aes(x = fav_season, y = n, fill = fav_season)) +
+  geom_col(width = 0.7, color = "white", linewidth = 0.4) +
+  geom_text(aes(label = paste0(n, " (", percent(pct, accuracy = 0.1), ")")),
+            vjust = -0.35, size = 4.2, fontface = "bold") +
+  scale_fill_manual(values = pal, guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +
+  labs(
+    title = "Favorite Season Among Classmates",
+    subtitle = "Counts with percentage labels",
+    x = "Season",
+    y = "Number of students",
+    caption = "Source: Class 1 Survey"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title.position = "plot",
+    panel.grid.major.x = element_blank()
+  )
 ```
 
 
